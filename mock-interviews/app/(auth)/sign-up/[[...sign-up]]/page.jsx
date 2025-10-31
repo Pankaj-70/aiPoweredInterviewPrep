@@ -9,6 +9,8 @@ export default function Page() {
         <Image
           alt="auth"
           src={'/auth.png'}
+          height={200}
+          width={200}
           className="w-full h-full drop-shadow-lg animate-fade-in rounded-l-md opacity-70"
         />
       </div>
