@@ -3,12 +3,20 @@ import { RiRobot2Line } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../utils/firebase";
+import axios from '../../node_modules/axios/lib/axios';
+import { serverUrl } from '../App';
 
 function Auth() {
   const handleGoogleAuth = async () => {
     try {
         const response = await signInWithPopup(auth, provider);
-        console.log(response);
+        const name = response.user.displayName;
+        const email = response.user.email;
+        const res = await axios.post(`${serverUrl}/api/auth/googleAuth`, {
+          name,
+          email,
+      }, {withCredentials:true});
+        console.log(res);
     } catch (error) {
       console.error("Error in google auth: ", error);
     }
