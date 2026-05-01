@@ -16,13 +16,14 @@ function App() {
       try {
         const res = await axios.get(`${serverUrl}/api/user/current-user`, {withCredentials: true});
         dispatch(setUserData(res.data.user));
+        console.log(res.data.user);
       } catch (error) {
         console.error('Error in getting user: ',error);
         dispatch(setUserData(null));
       }
     }
     getUser();
-  }, [dispatch]);
+  }, [dispatch, serverUrl]);
   return (
     <Routes>
       <Route path="/" element={<Home />} />
