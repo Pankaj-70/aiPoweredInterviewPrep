@@ -1,26 +1,31 @@
 import React from "react";
 import { RiRobot2Line } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../utils/firebase";
 
 function Auth() {
+  const handleGoogleAuth = async () => {
+    try {
+        const response = await signInWithPopup(auth, provider);
+        console.log(response);
+    } catch (error) {
+      console.error("Error in google auth: ", error);
+    }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      
       <div className="bg-white shadow-lg rounded-2xl p-8 max-w-md w-full text-center">
-        
         {/* Title with Robot Icon */}
         <div className="flex items-center justify-center gap-2 mb-3">
           <RiRobot2Line size={32} className="text-blue-500" />
-          <h1 className="text-2xl font-bold text-gray-800">
-            CareerPilot
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-800">CareerPilot</h1>
         </div>
 
         {/* Description */}
         <p className="text-gray-600 mb-6 text-sm">
-          Practice real interview questions powered by AI. 
-          Get instant feedback, improve your confidence, and 
-          land your dream job.
+          Practice real interview questions powered by AI. Get instant feedback,
+          improve your confidence, and land your dream job.
         </p>
 
         {/* Divider */}
@@ -31,13 +36,12 @@ function Auth() {
         </div>
 
         {/* Google Button */}
-        <button className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-2 hover:bg-gray-50 transition">
+        <button className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-2 hover:bg-gray-50 transition" onClick={handleGoogleAuth}>
           <FcGoogle size={22} />
           <span className="text-gray-700 font-medium">
             Continue with Google
           </span>
         </button>
-
       </div>
     </div>
   );
