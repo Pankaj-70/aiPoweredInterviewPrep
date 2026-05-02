@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import axios from "axios/unsafe/axios.js";
 import { useDispatch } from "react-redux";
 import { setUserData } from "./redux/userSlice";
+import Interview from "./pages/Interview";
 
 export const serverUrl='https://super-journey-x5w7rq54q4rjhv4rp-8000.app.github.dev'
 function App() {
@@ -28,6 +29,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/interview" element={<Interview />} />
     </Routes>
   );
 }

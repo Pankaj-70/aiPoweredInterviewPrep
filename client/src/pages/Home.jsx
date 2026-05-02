@@ -1,10 +1,14 @@
-import React from "react";
 import Navbar from "../components/Navbar";
 import { FaUserTie, FaMicrophone, FaClock, FaFilePdf, FaChartLine } from "react-icons/fa";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 import { BsFileEarmarkText } from "react-icons/bs";
+import {useNavigate} from 'react-router-dom';
 
 function Home() {
+  const navigate = useNavigate();
+  const interviewRedirectHandle = () => {
+    navigate('/interview');
+  }
   return (
     <div className="min-h-screen bg-[#f3f3f3] flex flex-col">
       <Navbar />
@@ -20,7 +24,7 @@ function Home() {
         </p>
 
         <div className="flex gap-4">
-          <button className="cursor-pointer bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+          <button className="cursor-pointer bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition" onClick={interviewRedirectHandle}>
             Begin Interview
           </button>
           <button className="cursor-pointer bg-white border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-100 transition">
