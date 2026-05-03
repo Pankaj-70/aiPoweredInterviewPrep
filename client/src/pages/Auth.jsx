@@ -7,9 +7,11 @@ import axios from '../../node_modules/axios/lib/axios';
 import { serverUrl } from '../App';
 import { useDispatch } from "react-redux";
 import { setUserData } from "../redux/userSlice";
+import { useNavigate } from "react-router-dom";
 
 function Auth() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const handleGoogleAuth = async () => {
     try {
         const response = await signInWithPopup(auth, provider);
@@ -20,6 +22,7 @@ function Auth() {
           email,
       }, {withCredentials:true});
         dispatch(setUserData(res.data.user));
+        navigate("/");
     } catch (error) {
       console.error("Error in google auth: ", error);
     }
