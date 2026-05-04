@@ -330,3 +330,51 @@ export const finishInterview = async (req, res) => {
     return res.status(500).json({ message: "Error finishing interview" });
   }
 };
+
+
+
+export const getMyInterviews = async(req, res) => {
+  try {
+    const {id} = req.params;
+    const intereviews = await Interview.find({userId: id})
+                             .sort({createdAt: -1})
+                             .select("role experience mode finalScore status createdAt");
+    return res.status(200).json(intereviews);
+  } catch(error) {
+    console.error("Error in getting interviews: ", error);
+    return res.status(500).json({message: `Error in getting interviews: ${error}`});
+  }
+}
+
+
+export const getInterviewReport = async(req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if(!interview) {
+      return res.status(500).json({message: "Interview not found"});
+    }
+    const total = interview.questions.length;
+
+    let score = 0,
+      confidence = 0,
+      correctness = 0,
+      communication = 0;
+
+    interview.questions.forEach((q) => {
+      confidence += q.confidence || 0;
+      correctness += q.correctness || 0;
+      communication += q.communication || 0;
+    });
+
+    return res.status(200).json({
+      finalScore: interview.finalScore,
+      confidence: Number((confidence / total).toFixed(1)),
+      correctness: Number((correctness / total).toFixed(1)),
+      communication: Number((communication / total).toFixed(1)),
+      questionWiseScore: interview.questions,
+    });
+  } catch (error) {
+    console.error("Error in generating report: ", error);
+    return res.status(500).json({message: `Error in generating report: ${error}`}); 
+  }
+}

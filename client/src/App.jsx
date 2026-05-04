@@ -9,6 +9,7 @@ import { setUserData } from "./redux/userSlice";
 import ResumeAnalysis from "./pages/ResumeAnalysis";
 import Interview from "./pages/Interview";
 import ReportPage from "./pages/ReportPage";
+import History  from "./pages/History";
 
 export const serverUrl='https://super-journey-x5w7rq54q4rjhv4rp-8000.app.github.dev'
 function App() {
@@ -34,6 +35,7 @@ function App() {
       <Route path="/resume-analysis" element={<ResumeAnalysis />} />
       <Route path="/interview" element={<Interview />} />
       <Route path="/report" element={<ReportPage />} />
+      <Route path="/history" element={<History />} />
     </Routes>
   );
 }
