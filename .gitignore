@@ -1,2 +1,3 @@
 node_modules/
-.envclient/src/assets/interviewer.mp4
+.env
+client/src/assets/interviewer.mp4
