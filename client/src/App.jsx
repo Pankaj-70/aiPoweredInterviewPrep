@@ -34,7 +34,7 @@ function App() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/resume-analysis" element={<ResumeAnalysis />} />
       <Route path="/interview" element={<Interview />} />
-      <Route path="/report" element={<ReportPage />} />
+      <Route path="/report/:id" element={<ReportPage />} />
       <Route path="/history" element={<History />} />
     </Routes>
   );

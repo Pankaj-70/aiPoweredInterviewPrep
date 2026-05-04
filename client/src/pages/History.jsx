@@ -7,6 +7,7 @@ import { FaBriefcase, FaClock, FaStar, FaRedo, FaChartBar, FaInbox } from 'react
 import { BsLightningChargeFill } from 'react-icons/bs';
 import { HiOutlineSparkles } from 'react-icons/hi';
 
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const scoreColor = (score) => {
   if (score >= 7) return { fg: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)' };
