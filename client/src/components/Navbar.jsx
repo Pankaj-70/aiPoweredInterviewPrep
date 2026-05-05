@@ -2,15 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { RiRobot2Line } from "react-icons/ri";
 import { FaCoins, FaBolt } from "react-icons/fa";
 import { FiUser, FiLogOut, FiClock, FiChevronRight } from "react-icons/fi";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { serverUrl } from "../App";
+import { setUserData } from "../redux/userSlice";
 
 const Navbar = () => {
   const [creditPopUp, showCreditPopUp] = useState(false);
   const [userPopUp, showUserPopUp] = useState(false);
-
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const creditRef = useRef(null);
   const userRef = useRef(null);
@@ -28,7 +29,8 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.get(`${serverUrl}/api/auth/logout`, { withCredentials: true });
+      const res = await axios.get(`${serverUrl}/api/auth/logout`, { withCredentials: true });
+      dispatch(setUserData(null));
       navigate("/auth");
     } catch (error) {
       console.error("Error in logout:", error);
