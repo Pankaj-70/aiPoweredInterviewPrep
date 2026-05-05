@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import interviewerVideo from "../assets/interviewer.mp4";
 import { useDispatch, useSelector } from 'react-redux';
-import  axios  from 'axios';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { serverUrl } from "../App";
 import { setFeedbackData } from "../redux/interviewSlice";
@@ -17,12 +17,17 @@ const Interview = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [isFinished, setIsFinished] = useState(false);
+  // ✅ Loading states for buttons
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  // ✅ Ref to control timer externally
+  const timerActiveRef = useRef(false);
+
   const dispatch = useDispatch();
 
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
   const finalTranscriptRef = useRef("");
-  // ✅ Ref to track mic state without stale closure issues
   const micActiveRef = useRef(false);
 
   const currentQuestion = interviewData.questions[currentIndex];
@@ -35,12 +40,12 @@ const Interview = () => {
 
   const navigate = useNavigate();
 
-  // ─── TTS via Web Speech API (reliable, no CORS) ───────────────────────────
+  // ─── TTS via Web Speech API ───────────────────────────────────────────────
   const speak = useCallback((text, callback) => {
     if (!text) { callback?.(); return; }
 
     stopListening();
-    window.speechSynthesis.cancel(); // Stop any ongoing speech
+    window.speechSynthesis.cancel();
 
     setIsSpeaking(true);
 
@@ -49,7 +54,6 @@ const Interview = () => {
     utterance.rate = 0.95;
     utterance.pitch = 1.05;
 
-    // Pick a natural-sounding female voice if available
     const voices = window.speechSynthesis.getVoices();
     const preferred = voices.find(
       (v) =>
@@ -73,7 +77,6 @@ const Interview = () => {
       callback?.();
     };
 
-    // Chrome bug: long utterances get cut off — chunking fix
     if (text.length > 200) {
       const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
       let i = 0;
@@ -133,7 +136,6 @@ const Interview = () => {
 
     recognition.onend = () => {
       setInterimAnswer("");
-      // Auto-restart only if mic should still be on
       if (micActiveRef.current) {
         try { recognition.start(); } catch (e) { console.warn("Restart failed:", e); }
       } else {
@@ -168,13 +170,13 @@ const Interview = () => {
 
     const startFlow = () => {
       speak(currentQuestion.question, () => {
+        timerActiveRef.current = true;           // ✅ Mark timer as active
         setTimeLeft(currentQuestion.timeLimit);
         setTimeout(startListening, 600);
       });
     };
 
     if (currentIndex === 0) {
-      // Voices may not be loaded yet on first render
       const trySpeak = () => {
         if (window.speechSynthesis.getVoices().length > 0) {
           speak("Hello, I am Meera. I will be taking your interview today.", startFlow);
@@ -189,10 +191,13 @@ const Interview = () => {
     }
   }, [currentIndex]);
 
-  // ─── Timer ────────────────────────────────────────────────────────────────
+  // ─── Timer — only ticks while timerActiveRef is true ─────────────────────
   useEffect(() => {
     if (timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((p) => p - 1), 1000);
+    const timer = setInterval(() => {
+      if (!timerActiveRef.current) return;       // ✅ Pause if stopped externally
+      setTimeLeft((p) => p - 1);
+    }, 1000);
     return () => clearInterval(timer);
   }, [timeLeft]);
 
@@ -206,41 +211,55 @@ const Interview = () => {
     currentQuestion ? (timeLeft / currentQuestion.timeLimit) * 100 : 100;
   const isTimerLow = timeLeft > 0 && timeLeft <= 10;
 
+  // ─── Stop timer helper ────────────────────────────────────────────────────
+  const stopTimer = () => {
+    timerActiveRef.current = false;
+  };
+
   // ─── Actions ──────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     stopListening();
+    stopTimer();                                  // ✅ Stop the timer
+    setIsSubmitting(true);                        // ✅ Show loading on button
     const submittedAnswer = finalTranscriptRef.current.trim();
-    const res = await axios.post(`${serverUrl}/api/interview/submit-answer`, 
-      {
-        interviewId: interviewData.interviewId,
-        questionIndex: currentIndex,
-        answer: submittedAnswer,
-        timeTaken: interviewData.questions[currentIndex].timeLimit 
-      }, {withCredentials: true}
-    );
-    console.log(res?.data);
-    setFeedback(res?.data?.feedback || "Structured well but could do better.")    
+    try {
+      const res = await axios.post(`${serverUrl}/api/interview/submit-answer`,
+        {
+          interviewId: interviewData.interviewId,
+          questionIndex: currentIndex,
+          answer: submittedAnswer,
+          timeTaken: interviewData.questions[currentIndex].timeLimit
+        }, { withCredentials: true }
+      );
+      console.log(res?.data);
+      setFeedback(res?.data?.feedback || "Structured well but could do better.");
+    } catch (err) {
+      console.error("Submit error:", err);
+      setFeedback("Could not fetch feedback. Please try again.");
+    } finally {
+      setIsSubmitting(false);                     // ✅ Clear loading
+    }
   };
 
   const handleNext = () => {
     stopListening();
+    stopTimer();                                  // ✅ Stop timer before moving
     setFinalAnswer("");
     setInterimAnswer("");
     setFeedback(null);
     setCurrentIndex((p) => p + 1);
   };
 
-  const handleReport = async() => {
+  const handleReport = async () => {
     stopListening();
+    stopTimer();                                  // ✅ Stop the timer
+    setIsReporting(true);                         // ✅ Show loading on button
     setIsFinished(true);
-    const res = await axios.post(`${serverUrl}/api/interview/finish`, 
-      {
-        interviewId: interviewData.interviewId,
-      }, {withCredentials: true}
-    );
-    console.log(res?.data);
-    dispatch(setFeedbackData(res?.data));
-    navigate("/report");
+    try {
+      navigate(`/report/${interviewData.interviewId}`);
+    } finally {
+      setIsReporting(false);
+    }
   };
 
   const toggleMic = () => {
@@ -248,7 +267,11 @@ const Interview = () => {
     else startListening();
   };
 
-  
+  // ─── Spinner component ────────────────────────────────────────────────────
+  const Spinner = () => (
+    <span style={styles.spinner} />
+  );
+
   return (
     <div style={styles.page}>
       {/* Progress bar */}
@@ -273,15 +296,16 @@ const Interview = () => {
       <div style={styles.card}>
         {/* ── LEFT PANEL ── */}
         <div style={styles.leftPanel}>
-          {/* Video — always plays */}
+          {/* Video */}
           <div style={styles.videoWrapper}>
             <video
               ref={videoRef}
               style={{
                 ...styles.video,
+                // ✅ FIX: always visible; only brightness tweaked slightly when not speaking
                 filter: isSpeaking
                   ? "brightness(1.05) saturate(1.1)"
-                  : "brightness(0.65) saturate(0.4)",
+                  : "brightness(0.9) saturate(0.85)",
                 transition: "filter 0.5s ease",
               }}
               src={interviewerVideo}
@@ -289,15 +313,15 @@ const Interview = () => {
               loop
               muted
               playsInline
+              // ✅ FIX: ensure video plays after user interaction
+              onCanPlay={(e) => e.target.play().catch(() => {})}
             />
-            {/* Speaking indicator */}
             {isSpeaking && (
               <div style={styles.speakingBadge}>
                 <span style={styles.speakingDot} />
                 Speaking…
               </div>
             )}
-            {/* Difficulty badge */}
             <div
               style={{
                 ...styles.diffBadge,
@@ -348,7 +372,7 @@ const Interview = () => {
             <p style={styles.questionText}>{currentQuestion.question}</p>
           </div>
 
-          {/* Answer textarea — shows final + interim separately */}
+          {/* Answer box */}
           <div style={styles.answerBox}>
             <span style={{ color: "#e2e8f0" }}>
               {finalTranscriptRef.current}
@@ -361,7 +385,6 @@ const Interview = () => {
                 Speak or type your answer…
               </span>
             )}
-            {/* Editable overlay for manual typing */}
             <textarea
               value={finalTranscriptRef.current + interimAnswer}
               onChange={(e) => {
@@ -383,16 +406,53 @@ const Interview = () => {
           {/* Actions */}
           <div style={styles.actions}>
             {!feedback ? (
-              <button style={styles.primaryBtn} onClick={handleSubmit}>
-                Submit Answer
+              // ── Submit Answer button ──
+              <button
+                style={{
+                  ...styles.primaryBtn,
+                  opacity: isSubmitting ? 0.75 : 1,
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <><Spinner /> Evaluating…</>
+                ) : (
+                  "Submit Answer"
+                )}
               </button>
             ) : currentIndex < interviewData.questions.length - 1 ? (
-              <button style={{ ...styles.primaryBtn, background: "#f59e0b" }} onClick={handleNext}>
+              // ── Next Question button ──
+              <button
+                style={{ ...styles.primaryBtn, background: "#f59e0b" }}
+                onClick={handleNext}
+              >
                 Next Question →
               </button>
             ) : (
-              <button style={{ ...styles.primaryBtn, background: "#8b5cf6" }} onClick={handleReport}>
-                Get Report
+              // ── Get Report button ──
+              <button
+                style={{
+                  ...styles.primaryBtn,
+                  background: "#8b5cf6",
+                  opacity: isReporting ? 0.75 : 1,
+                  cursor: isReporting ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+                onClick={handleReport}
+                disabled={isReporting}
+              >
+                {isReporting ? (
+                  <><Spinner /> Generating Report…</>
+                ) : (
+                  "Get Report"
+                )}
               </button>
             )}
 
@@ -424,6 +484,9 @@ const Interview = () => {
         @keyframes ripple {
           0% { transform: scale(1); opacity: 0.6; }
           100% { transform: scale(2.2); opacity: 0; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
@@ -642,6 +705,16 @@ const styles = {
     border: "2px solid #ef4444",
     animation: "ripple 1.5s infinite",
     pointerEvents: "none",
+  },
+  // ✅ Spinner style
+  spinner: {
+    display: "inline-block",
+    width: 14,
+    height: 14,
+    border: "2px solid rgba(255,255,255,0.3)",
+    borderTopColor: "#fff",
+    borderRadius: "50%",
+    animation: "spin 0.7s linear infinite",
   },
   finishedCard: {
     background: "rgba(255,255,255,0.07)",

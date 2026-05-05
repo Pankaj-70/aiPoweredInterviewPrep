@@ -1,15 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { RiRobot2Line } from "react-icons/ri";
 import { FcGoogle } from "react-icons/fc";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../utils/firebase";
 import axios from '../../node_modules/axios/lib/axios';
 import { serverUrl } from '../App';
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUserData } from "../redux/userSlice";
 import { useNavigate } from "react-router-dom";
 
 function Auth() {
+  const userData = useSelector((state) => state.user.userData);
+  useEffect(()=>{
+    if(userData)
+      navigate("/");
+  }, [userData])
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const handleGoogleAuth = async () => {
